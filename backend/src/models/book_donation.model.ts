@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IBookDonation extends Document {
-  donor: mongoose.Types.ObjectId;
+  donor_id: mongoose.Types.ObjectId;
   bookDetails: {
     title: string;
     quantity: number;
@@ -18,7 +18,7 @@ export interface IBookDonation extends Document {
 }
 
 const BookDonationSchema: Schema = new Schema({
-  donor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  donor_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   bookDetails: [{
     title: String,
     quantity: Number,

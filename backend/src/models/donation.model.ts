@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IDonation extends Document {
-  donor: mongoose.Types.ObjectId; // Reference to User
+  donor_id: mongoose.Types.ObjectId; // Reference to User
   amount: number;
   currency: string;
   paymentMethod: 'UPI' | 'card' | 'net_banking';
@@ -11,7 +11,7 @@ export interface IDonation extends Document {
 }
 
 const DonationSchema: Schema = new Schema({
-  donor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  donor_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   amount: { type: Number, required: true },
   currency: { type: String, default: 'INR' },
   paymentMethod: { type: String, enum: ['UPI', 'card', 'net_banking'] },

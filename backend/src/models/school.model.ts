@@ -1,8 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ISchool extends Document {
-  email: string; // Login email
-  passwordHash: string;
+  user_id: mongoose.Types.ObjectId;
   schoolDetails: {
     name: string;
     address: string;
@@ -31,9 +30,13 @@ export interface ISchool extends Document {
 }
 
 const SchoolSchema: Schema = new Schema({
-  email: { type: String, required: true, unique: true },
-  passwordHash: { type: String, required: true },
-  
+  user_id: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true,
+  },
+
   schoolDetails: {
     name: { type: String, required: true },
     address: { type: String, required: true },
@@ -59,7 +62,7 @@ const SchoolSchema: Schema = new Schema({
     isVerified: { type: Boolean, default: false }, // Default is unverified
     verifiedAt: Date
   },
-
+  
   requirements: {
     infrastructure: [{ type: String }],
     booksNeeded: { type: Boolean, default: false },

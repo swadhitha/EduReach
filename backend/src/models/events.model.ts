@@ -9,14 +9,14 @@ export interface IEvent extends Document {
   location: {
     address: string;
     city: string;
-    // Optional: Link to a specific School ID if you have a School Schema
     schoolId?: mongoose.Types.ObjectId; 
   };
   requirements: {
     skills: string[]; // e.g., ["Mathematics", "Tamil Fluency"]
     maxVolunteers: number;
   };
-  volunteersRegistered: mongoose.Types.ObjectId[]; // Array of User IDs
+  volunteersRegistered: mongoose.Types.ObjectId[]; // Array of User IDs who registered
+  volunteersAttended: mongoose.Types.ObjectId[]; // Array of User IDs who actually attended
   status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
   createdBy: mongoose.Types.ObjectId; // Admin or School rep who posted it
 }
@@ -41,6 +41,7 @@ const EventSchema: Schema = new Schema({
     maxVolunteers: { type: Number, default: 5 }
   },
   volunteersRegistered: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  volunteersAttended: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   status: { 
     type: String, 
     enum: ['upcoming', 'ongoing', 'completed', 'cancelled'], 
