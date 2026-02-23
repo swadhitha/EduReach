@@ -4,12 +4,13 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { asyncHandler } from '../utils/errorHandler';
 import { User } from '../models/User.model';
+import { Auth } from '../models/Auth.model';
 import { School } from '../models/school.model';
 import { Volunteer } from '../models/volunteer.model';
 import config from '../config/env';
 import { logger } from '../utils/logger';
 
-// POST /api/auth/register - Register a new user (Donor or Volunteer)
+// POST /api/auth/register - Register a new user (Donor)
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const { name, email, password, phone, role } = req.body;
 
@@ -21,13 +22,22 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   const passwordHash = await bcrypt.hash(password, 10);
 
+  // Create user for identity
   const newUser = await User.create({
     name,
     email,
     phone,
-    passwordHash,
     role: role || 'donor',
   });
+
+  // Create auth record for security
+  console.log('Creating auth record for:', email);
+  await Auth.create({
+    user_id: newUser._id,
+    passwordHash,
+    role: newUser.role,
+  });
+  console.log('Auth record created successfully');
 
   logger.info(`User registered: ${email} (role: ${newUser.role})`);
 
@@ -40,7 +50,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
 // POST /api/auth/volunteer/register - Register a new volunteer with profile
 export const volunteerRegister = asyncHandler(async (req: Request, res: Response) => {
-  const { name, email, password, phone, skills, availability } = req.body;
+  const { name, email, password, phone, expertise, skills, availability } = req.body;
 
   const existing = await User.findOne({ email });
   if (existing) {
@@ -50,20 +60,27 @@ export const volunteerRegister = asyncHandler(async (req: Request, res: Response
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  // Create user with volunteer role
+  // Create user for identity
   const newUser = await User.create({
     name,
     email,
     phone,
+    role: 'volunteer',
+  });
+
+  // Create auth record for security
+  await Auth.create({
+    user_id: newUser._id,
     passwordHash,
     role: 'volunteer',
   });
 
   // Create volunteer profile linked to user
   const volunteerProfile = await Volunteer.create({
-    user: newUser._id,
+    user_id: newUser._id,
+    expertise: expertise || [],
     skills: skills || [],
-    availability: availability || { days: [], timeSlots: [] },
+    availability: availability || [],
     hoursContributed: 0,
     pastActivities: [],
   });
@@ -86,35 +103,35 @@ export const volunteerRegister = asyncHandler(async (req: Request, res: Response
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  // Try User collection first
-  let user: any = await User.findOne({ email });
-  let source: 'user' | 'school' = 'user';
-
-  if (!user) {
-    // Try schools
-    user = await School.findOne({ email });
-    source = 'school';
-  }
+  // Find user by email
+  const user = await User.findOne({ email });
 
   if (!user) {
     logger.warn(`Login attempt with non-existent email: ${email}`);
     return res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 
-  const storedHash = user.passwordHash;
-  const match = await bcrypt.compare(password, storedHash);
+  // Find auth record for the user
+  const authRecord = await Auth.findOne({ user_id: user._id });
+
+  if (!authRecord) {
+    logger.error(`Auth record missing for user: ${email}`);
+    return res.status(401).json({ success: false, message: 'Invalid credentials' });
+  }
+
+  const match = await bcrypt.compare(password, authRecord.passwordHash);
   if (!match) {
     logger.warn(`Failed login attempt for: ${email}`);
     return res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 
-  const payload = { id: user._id, email: user.email, role: user.role || 'school', source };
+  const payload = { id: user._id, email: user.email, role: user.role };
   const signOptions: jwt.SignOptions = {
     expiresIn: config.JWT_EXPIRY as unknown as jwt.SignOptions['expiresIn'],
   };
   const token = jwt.sign(payload as Record<string, unknown>, config.JWT_SECRET as jwt.Secret, signOptions);
 
-  logger.info(`User logged in: ${email} (source: ${source})`);
+  logger.info(`User logged in: ${email} (role: ${user.role})`);
 
   res.status(200).json({
     success: true,
@@ -129,25 +146,31 @@ export const schoolRegister = asyncHandler(async (req: Request, res: Response) =
   const { email, password, schoolDetails, contactPerson, verification, requirements } = req.body;
 
   const existingUser = await User.findOne({ email });
-  const existingSchool = await School.findOne({ email });
-  if (existingUser || existingSchool) {
+  if (existingUser) {
     logger.warn(`School registration attempt with existing email: ${email}`);
     return res.status(400).json({ success: false, message: 'Account with this email already exists' });
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
 
+  // Create user for identity
   const newUser = await User.create({
     name: schoolDetails.name,
     email,
     phone: contactPerson.phone,
+    role: 'school',
+  });
+
+  // Create auth record for security
+  await Auth.create({
+    user_id: newUser._id,
     passwordHash,
     role: 'school',
   });
 
+  // Create school profile linked to user
   const newSchool = await School.create({
-    email,
-    passwordHash,
+    user_id: newUser._id,
     schoolDetails,
     contactPerson,
     verification: verification || { documentUrl: '', isVerified: false },
@@ -167,8 +190,7 @@ export const schoolRegister = asyncHandler(async (req: Request, res: Response) =
 export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
   const { email } = req.body;
 
-  // Try both User and School
-  const user = (await User.findOne({ email })) || (await School.findOne({ email }));
+  const user = await User.findOne({ email });
 
   // Always return success response to avoid leaking which emails exist
   if (!user) {

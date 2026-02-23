@@ -37,8 +37,11 @@ export const authValidators = {
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     body('phone').notEmpty().withMessage('Phone is required'),
+    body('expertise').optional().isArray().withMessage('Expertise must be an array'),
     body('skills').optional().isArray().withMessage('Skills must be an array'),
-    body('availability').optional().isObject().withMessage('Availability must be an object'),
+    body('availability').optional().isArray().withMessage('Availability must be an array'),
+    body('availability.*.day').notEmpty().withMessage('Day is required for availability'),
+    body('availability.*.timeSlot').notEmpty().withMessage('Time slot is required for availability'),
   ],
 
   forgotPassword: [

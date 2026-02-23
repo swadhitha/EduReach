@@ -2,11 +2,12 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IVolunteerProfile extends Document {
   user_id: mongoose.Types.ObjectId;
+  expertise: string[]; // e.g., ['Mathematics', 'Science', 'English']
   skills: string[]; // e.g., ['Teaching', 'Mentoring', 'Art']
   availability: {
-    days: string[]; // e.g., ['Saturday', 'Sunday']
-    timeSlots: string[]; // e.g., ['10am-12pm']
-  };
+    day: string; // e.g., 'Saturday'
+    timeSlot: string; // e.g., '10am-12pm'
+  }[];
   hoursContributed: number;
   pastActivities: mongoose.Types.ObjectId[]; // References to specific events/tasks
   isVerified: boolean;
@@ -14,11 +15,12 @@ export interface IVolunteerProfile extends Document {
 
 const VolunteerProfileSchema: Schema = new Schema({
   user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+  expertise: [{ type: String }],
   skills: [{ type: String }],
-  availability: {
-    days: [{ type: String }],
-    timeSlots: [{ type: String }]
-  },
+  availability: [{
+    day: { type: String, required: true },
+    timeSlot: { type: String, required: true }
+  }],
   hoursContributed: { type: Number, default: 0 },
   pastActivities: [{ type: Schema.Types.ObjectId, ref: 'Activity' }], // Optional: if you build an Activity module
   isVerified: { type: Boolean, default: false }
