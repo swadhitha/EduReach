@@ -7,8 +7,27 @@ import Button from '../components/Button.jsx'
 import { authService } from '../services/authService.js'
 
 export default function Register() {
-  const { register, handleSubmit, watch, formState } = useForm({
-    defaultValues: { role: 'donor' },
+  const { register, handleSubmit, watch, setValue, formState } = useForm({
+    defaultValues: {
+      role: 'donor',
+      schoolDetails: {
+        name: '',
+        address: '',
+        city: '',
+        state: '',
+        pincode: '',
+        udiseCode: '',
+        schoolType: 'government',
+      },
+      contactPerson: {
+        name: '',
+        role: '',
+        phone: '',
+      },
+      verification: {
+        documentUrl: '',
+      },
+    },
   })
   const { errors } = formState
   const [serverError, setServerError] = useState('')
@@ -23,7 +42,14 @@ export default function Register() {
     setSuccess('')
     try {
       if (values.role === 'school') {
-        await authService.schoolRegister(values)
+        const payload = {
+          email: values.email,
+          password: values.password,
+          schoolDetails: values.schoolDetails,
+          contactPerson: values.contactPerson,
+          verification: values.verification,
+        }
+        await authService.schoolRegister(payload)
       } else if (values.role === 'volunteer') {
         await authService.volunteerRegister(values)
       } else {
@@ -55,8 +81,11 @@ export default function Register() {
                   key={r}
                   type="button"
                   onClick={() => {
-                    // eslint-disable-next-line react-hooks/rules-of-hooks
-                    register('role').onChange({ target: { value: r } })
+                    setValue('role', r, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: true,
+                    })
                   }}
                   className={`rounded-lg border px-3 py-2 capitalize ${
                     role === r
@@ -71,10 +100,10 @@ export default function Register() {
             </div>
 
             <Input
-              label="Name"
-              name="name"
+              label={role === 'school' ? 'School name' : 'Name'}
+              name={role === 'school' ? 'schoolDetails.name' : 'name'}
               register={register}
-              error={errors.name}
+              error={role === 'school' ? errors.schoolDetails?.name : errors.name}
             />
             <Input
               label="Email"
@@ -90,6 +119,102 @@ export default function Register() {
               register={register}
               error={errors.password}
             />
+
+            {role === 'school' && (
+              <>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Input
+                    label="School type"
+                    name="schoolDetails.schoolType"
+                    register={register}
+                    error={errors.schoolDetails?.schoolType}
+                    list="school-type-options"
+                    placeholder="government / aided / private_non_profit"
+                  />
+                  <datalist id="school-type-options">
+                    <option value="government" />
+                    <option value="aided" />
+                    <option value="private_non_profit" />
+                  </datalist>
+
+                  <Input
+                    label="UDISE code"
+                    name="schoolDetails.udiseCode"
+                    register={register}
+                    error={errors.schoolDetails?.udiseCode}
+                  />
+                </div>
+
+                <Input
+                  label="Address"
+                  name="schoolDetails.address"
+                  register={register}
+                  error={errors.schoolDetails?.address}
+                />
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Input
+                    label="City"
+                    name="schoolDetails.city"
+                    register={register}
+                    error={errors.schoolDetails?.city}
+                  />
+                  <Input
+                    label="State"
+                    name="schoolDetails.state"
+                    register={register}
+                    error={errors.schoolDetails?.state}
+                  />
+                  <Input
+                    label="Pincode"
+                    name="schoolDetails.pincode"
+                    register={register}
+                    error={errors.schoolDetails?.pincode}
+                    inputMode="numeric"
+                    placeholder="6 digits"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <p className="text-xs font-medium text-slate-700">
+                    Contact person
+                  </p>
+                  <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Input
+                      label="Name"
+                      name="contactPerson.name"
+                      register={register}
+                      error={errors.contactPerson?.name}
+                    />
+                    <Input
+                      label="Role"
+                      name="contactPerson.role"
+                      register={register}
+                      error={errors.contactPerson?.role}
+                      placeholder="Principal / Headmaster"
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <Input
+                      label="Phone"
+                      name="contactPerson.phone"
+                      register={register}
+                      error={errors.contactPerson?.phone}
+                      inputMode="numeric"
+                      placeholder="10 digits"
+                    />
+                  </div>
+                </div>
+
+                <Input
+                  label="Verification document URL"
+                  name="verification.documentUrl"
+                  register={register}
+                  error={errors.verification?.documentUrl}
+                  placeholder="https://..."
+                />
+              </>
+            )}
 
             {serverError && (
               <p className="text-xs text-red-500">{serverError}</p>
