@@ -175,6 +175,8 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     success: true,
     message: 'Login successful',
     token,
+    name: user.name,
+    role: user.role,
     expiresIn: config.JWT_EXPIRY,
     emailVerified: user.isEmailVerified,
   });
