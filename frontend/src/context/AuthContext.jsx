@@ -8,6 +8,7 @@ export function AuthProvider({ children }) {
   const [userId, setUserId] = useState(null)
   const [emailVerified, setEmailVerified] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showLoginToast, setShowLoginToast] = useState(false)
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token')
@@ -28,6 +29,7 @@ export function AuthProvider({ children }) {
     setRole(newRole)
     setUserId(newUserId)
     setEmailVerified(newEmailVerified)
+    setShowLoginToast(true)
     localStorage.setItem('token', newToken)
     localStorage.setItem('role', newRole)
     if (newUserId) localStorage.setItem('userId', newUserId)
@@ -45,7 +47,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('emailVerified')
   }
 
-  const value = { token, role, userId, emailVerified, login, logout, loading }
+  const value = { token, role, userId, login, logout, loading, showLoginToast, setShowLoginToast }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
